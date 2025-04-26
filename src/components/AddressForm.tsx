@@ -11,7 +11,6 @@ interface AddressFormProps {
 export function AddressForm({ onAddressChange, existingAddressId }: AddressFormProps) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [formData, setFormData] = useState<AddressFormData>({
     country_id: '',
     state: '',
@@ -27,7 +26,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
     loadCountries();
     if (existingAddressId) {
       loadExistingAddress();
-      setIsExpanded(true);
+      
     }
   }, [existingAddressId]);
 
@@ -91,22 +90,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
 
   return (
     <div className="border rounded-lg">
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 text-left"
-      >
-        <span className="text-sm font-medium text-gray-700">
-          {isExpanded ? 'Hide Address Details' : 'Add Address Details'}
-        </span>
-        {isExpanded ? (
-          <ChevronDown className="h-5 w-5 text-gray-400" />
-        ) : (
-          <ChevronRight className="h-5 w-5 text-gray-400" />
-        )}
-      </button>
-
-      {isExpanded && (
+   
         <div className="p-4 border-t space-y-6">
           {error && (
             <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
@@ -227,7 +211,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             />
           </div>
         </div>
-      )}
+      
     </div>
   );
 }
