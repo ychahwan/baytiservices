@@ -25,7 +25,6 @@ export function FieldOperatorForm() {
     referenced_by: '',
     domain: '',
   });
-
   const [addressData, setAddressData] = useState<AddressFormData>({
     country_id: '',
     state: '',
@@ -61,7 +60,8 @@ export function FieldOperatorForm() {
 
       if (data) {
         setFormData({
-          ...formData,
+          email: '',
+          password: '',
           first_name: data.first_name,
           last_name: data.last_name,
           phone_number: data.phone_number || '',
@@ -72,11 +72,49 @@ export function FieldOperatorForm() {
           domain: data.domain || '',
           address_id: data.address_id || null,
         });
+
+        if (data.addresses) {
+          setAddressData({
+            country_id: data.addresses.country_id || '',
+            state: data.addresses.state || '',
+            city: data.addresses.city || '',
+            street_address: data.addresses.street_address || '',
+            postal_code: data.addresses.postal_code || '',
+            building_number: data.addresses.building_number || '',
+            apartment_number: data.addresses.apartment_number || '',
+            additional_info: data.addresses.additional_info || '',
+          });
+        }
       }
     } catch (err) {
       console.error('Error loading field operator:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
+  };
+
+  const callEdgeFunction = async (
+    endpoint: string,
+    payload: any,
+    token: string
+  ) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${endpoint}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed API call');
+    }
+
+    return await response.json();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,10 +123,17 @@ export function FieldOperatorForm() {
     setError(null);
 
     try {
-      const currentUser = await supabase.auth.getUser();
-      const userId = currentUser.data.user?.id;
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('No authenticated user');
 
-      if (!userId) throw new Error('No authenticated user');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userAccessToken = session?.access_token;
+      if (!userAccessToken) throw new Error('User access token not found');
 
       let addressId = formData.address_id;
 
@@ -99,7 +144,7 @@ export function FieldOperatorForm() {
             .from('addresses')
             .update({
               ...addressData,
-              updated_by: userId,
+              updated_by: user.id,
               updated_at: new Date().toISOString(),
             })
             .eq('id', addressId);
@@ -108,11 +153,13 @@ export function FieldOperatorForm() {
         } else {
           const { data: newAddress, error: addressError } = await supabase
             .from('addresses')
-            .insert([{
-              ...addressData,
-              created_by: userId,
-              updated_by: userId,
-            }])
+            .insert([
+              {
+                ...addressData,
+                created_by: user.id,
+                updated_by: user.id,
+              },
+            ])
             .select()
             .single();
 
@@ -124,38 +171,11 @@ export function FieldOperatorForm() {
       }
 
       if (id) {
-        // Update existing field operator
-        const { error: updateError } = await supabase
-          .from('field_operators')
-          .update({
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            phone_number: formData.phone_number,
-            working_area: formData.working_area,
-            date_of_birth: formData.date_of_birth,
-            description: formData.description,
-            referenced_by: formData.referenced_by,
-            domain: formData.domain,
-            address_id: addressId,
-            updated_by: userId,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new field operator
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-        });
-
-        if (authError) throw authError;
-        if (!authData.user) throw new Error('No user returned from signup');
-
-        const { error: operatorError } = await supabase.from('field_operators').insert([
+        // Update Field Operator via Edge Function
+        await callEdgeFunction(
+          'update-field-operator',
           {
-            user_id: authData.user.id,
+            id,
             first_name: formData.first_name,
             last_name: formData.last_name,
             phone_number: formData.phone_number,
@@ -165,16 +185,33 @@ export function FieldOperatorForm() {
             referenced_by: formData.referenced_by,
             domain: formData.domain,
             address_id: addressId,
-            created_by: userId,
-            updated_by: userId,
           },
-        ]);
-
-        if (operatorError) throw operatorError;
+          userAccessToken
+        );
+      } else {
+        // Create Field Operator via Edge Function
+        await callEdgeFunction(
+          'create-field-operator',
+          {
+            email: formData.email,
+            password: formData.password,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            phone_number: formData.phone_number,
+            working_area: formData.working_area,
+            date_of_birth: formData.date_of_birth,
+            description: formData.description,
+            referenced_by: formData.referenced_by,
+            domain: formData.domain,
+            address_id: addressId,
+          },
+          userAccessToken
+        );
       }
 
       navigate('/field-operators');
     } catch (err) {
+      console.error('Error submitting field operator:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);

@@ -593,16 +593,17 @@ export function ServiceProviderForm() {
         );
 
       case 'documents':
-        return (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Upload Document
             </label>
             <FileUpload
-              onFileUpload={handleFileUpload}
-              existingFileUrl={formData.file_url}
-              onRemove={handleFileRemove}
-            />
+  onFilesUpload={(urls) => {
+    handleFileUpload(urls[0]); // if you only care about the first file
+  }}
+  existingFileUrls={formData.file_url ? [formData.file_url] : []}
+  onRemove={(index) => handleFileRemove()} // assuming you still remove one file
+/>
           </div>
         );
 

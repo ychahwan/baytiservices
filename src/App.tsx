@@ -15,6 +15,7 @@ import { UserRoleManagement } from './pages/UserRoleManagement';
 import { Settings } from './pages/Settings';
 import { Search } from './pages/Search';
 import { Sidebar } from './components/Sidebar';
+import { Toaster } from 'react-hot-toast';
 
 function AppContent() {
   const location = useLocation();
@@ -55,9 +56,12 @@ function AppContent() {
 
 function App() {
   return (
+    <>
+    <Toaster position="top-right" reverseOrder={false} />
     <Router>
       <AppContent />
     </Router>
+ </>
   );
 }
 
