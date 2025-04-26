@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Country, AddressFormData } from '../lib/types';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface AddressFormProps {
   onAddressChange: (formData: AddressFormData) => void;
@@ -11,6 +10,8 @@ interface AddressFormProps {
 export function AddressForm({ onAddressChange, existingAddressId }: AddressFormProps) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingCountries, setLoadingCountries] = useState<boolean>(false);
+  const [loadingAddress, setLoadingAddress] = useState<boolean>(false);
   const [formData, setFormData] = useState<AddressFormData>({
     country_id: '',
     state: '',
@@ -26,21 +27,16 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
     loadCountries();
     if (existingAddressId) {
       loadExistingAddress();
-      
     }
   }, [existingAddressId]);
 
   const loadCountries = async () => {
+    setLoadingCountries(true);
     try {
-      const { data, error } = await supabase
-        .from('countries')
-        .select('*')
-        .order('name');
-
+      const { data, error } = await supabase.from('countries').select('*').order('name');
       if (error) throw error;
       setCountries(data || []);
 
-      // Find Lebanon in the countries list
       const lebanon = data?.find(country => country.code === 'LB');
       if (lebanon && !existingAddressId && !formData.country_id) {
         const newFormData = { ...formData, country_id: lebanon.id };
@@ -50,17 +46,15 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
     } catch (err) {
       console.error('Error loading countries:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoadingCountries(false);
     }
   };
 
   const loadExistingAddress = async () => {
+    setLoadingAddress(true);
     try {
-      const { data, error } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('id', existingAddressId)
-        .single();
-
+      const { data, error } = await supabase.from('addresses').select('*').eq('id', existingAddressId).single();
       if (error) throw error;
       if (data) {
         const newFormData = {
@@ -79,6 +73,8 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
     } catch (err) {
       console.error('Error loading address:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoadingAddress(false);
     }
   };
 
@@ -90,17 +86,27 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
 
   return (
     <div className="border rounded-lg">
-   
-        <div className="p-4 border-t space-y-6">
+      {(loadingCountries || loadingAddress) && (
+        <div className="flex items-center justify-center p-4">
+          <svg className="animate-spin h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </div>
+      )}
+
+      {!loadingCountries && !loadingAddress && (
+        <div className="p-4 space-y-6">
           {error && (
             <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
               {error}
             </div>
           )}
 
+          {/* Country */}
           <div>
             <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-              Country
+              Country <span className="text-red-500">*</span>
             </label>
             <select
               id="country"
@@ -117,6 +123,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             </select>
           </div>
 
+          {/* State & City */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label htmlFor="state" className="block text-sm font-medium text-gray-700">
@@ -132,7 +139,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             </div>
             <div>
               <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                City
+                City <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -144,9 +151,10 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             </div>
           </div>
 
+          {/* Street Address */}
           <div>
             <label htmlFor="street_address" className="block text-sm font-medium text-gray-700">
-              Street Address
+              Street Address <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -157,6 +165,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             />
           </div>
 
+          {/* Postal Code & Building Number */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
@@ -184,6 +193,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             </div>
           </div>
 
+          {/* Apartment Number */}
           <div>
             <label htmlFor="apartment_number" className="block text-sm font-medium text-gray-700">
               Apartment Number
@@ -197,6 +207,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             />
           </div>
 
+          {/* Additional Info */}
           <div>
             <label htmlFor="additional_info" className="block text-sm font-medium text-gray-700">
               Additional Information
@@ -211,7 +222,7 @@ export function AddressForm({ onAddressChange, existingAddressId }: AddressFormP
             />
           </div>
         </div>
-      
+      )}
     </div>
   );
 }
