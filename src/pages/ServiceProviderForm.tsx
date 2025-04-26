@@ -149,88 +149,92 @@ export function ServiceProviderForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+  
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('No authenticated user');
+  
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userAccessToken = session?.access_token;
+      if (!userAccessToken) throw new Error('User access token not found');
+  
       let addressId = formData.address_id;
-
+  
       // Handle address creation/update
       if (addressData.country_id) {
-        const currentUser = await supabase.auth.getUser();
-        const userId = currentUser.data.user?.id;
-
-        if (!userId) throw new Error('No authenticated user');
-
         if (addressId) {
           const { error: addressError } = await supabase
             .from('addresses')
             .update({
               ...addressData,
-              updated_by: userId,
+              updated_by: user.id,
               updated_at: new Date().toISOString(),
             })
             .eq('id', addressId);
-
+  
           if (addressError) throw addressError;
         } else {
           const { data: newAddress, error: addressError } = await supabase
             .from('addresses')
-            .insert([{
-              ...addressData,
-              created_by: userId,
-              updated_by: userId,
-            }])
+            .insert([
+              {
+                ...addressData,
+                created_by: user.id,
+                updated_by: user.id,
+              },
+            ])
             .select()
             .single();
-
+  
           if (addressError) throw addressError;
           if (newAddress) {
             addressId = newAddress.id;
           }
         }
       }
-
+  
       const payload = {
         ...formData,
         address_id: addressId,
         working_area_ids: Array.from(selectedWorkingAreas),
         service_type_ids: Array.from(selectedServiceTypes),
       };
-
+  
       if (id) {
-        // Update existing service provider
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-service-provider`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${userAccessToken}`,
           },
-          body: JSON.stringify({
-            id,
-            ...payload,
-          }),
+          body: JSON.stringify({ id, ...payload }),
         });
-
+  
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to update service provider');
         }
       } else {
-        // Create new service provider
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-service-provider`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${userAccessToken}`,
           },
           body: JSON.stringify(payload),
         });
-
+  
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to create service provider');
         }
       }
-
+  
       navigate('/service-providers');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -238,6 +242,7 @@ export function ServiceProviderForm() {
       setLoading(false);
     }
   };
+  
 
   const toggleServiceType = (serviceTypeId: string) => {
     const newSelected = new Set(selectedServiceTypes);

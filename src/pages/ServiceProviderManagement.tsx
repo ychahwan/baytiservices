@@ -22,6 +22,7 @@ interface ServiceProvider {
   description: string;
   referenced_by: string;
   created_at: string;
+  created_by: string;
   file_url: string | null;
   service_provider_types: {
     service_type: {
@@ -171,7 +172,8 @@ export function ServiceProviderManagement() {
       'Description',
       'Referenced By',
       'Services',
-      'Created At'
+      'Created At',
+      'Created By'
     ];
 
     const csvData = providers.map(provider => [
@@ -190,7 +192,8 @@ export function ServiceProviderManagement() {
       provider.service_provider_types.map(spt => 
         `${spt.service_type.subcategory.category.name} > ${spt.service_type.subcategory.name} > ${spt.service_type.name}`
       ).join('; '),
-      new Date(provider.created_at).toLocaleDateString()
+      new Date(provider.created_at).toLocaleDateString(),
+      provider.created_by || '',
     ]);
 
     const csvContent = [
@@ -254,7 +257,6 @@ export function ServiceProviderManagement() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Working Areas</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -325,7 +327,7 @@ export function ServiceProviderManagement() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  {/* <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {provider.service_provider_types.map((spt, index) => (
                         <span
@@ -336,7 +338,7 @@ export function ServiceProviderManagement() {
                         </span>
                       ))}
                     </div>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                       ${provider.status === 'active' ? 'bg-green-100 text-green-800' : 
