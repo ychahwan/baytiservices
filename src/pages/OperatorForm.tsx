@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 type TabType = 'account' | 'profile' | 'address';
 
 export function OperatorForm() {
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState<TabType>('account');
@@ -116,8 +117,49 @@ export function OperatorForm() {
     return await response.json();
   };
 
+  const validateForm = () => {
+    const errors: string[] = [];
+  
+    if (!formData.first_name.trim()) {
+      errors.push('first_name');
+    }
+  
+    if (!formData.last_name.trim()) {
+      errors.push('last_name');
+    }
+    if (!formData.phone_number.trim()) {
+      errors.push('phone_number');
+    }
+  
+    if (!id) {
+      if (!formData.email.trim()) {
+        errors.push('email');
+      }
+      if (!formData.password.trim()) {
+        errors.push('password');
+      }
+    }
+  
+    if (formData.date_of_birth && isNaN(Date.parse(formData.date_of_birth))) {
+      errors.push('date_of_birth');
+    }
+  
+    setInvalidFields(errors);
+  
+    if (errors.length > 0) {
+      setError('Please fill all required fields correctly.');
+      return false;
+    }
+  
+    return true;
+  };
+  
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+      if (!validateForm()) {
+    return; // Stop submit if validation fails
+  }
     setLoading(true);
     setError(null);
     let newlyCreatedAddressId: string | null = null;
@@ -239,6 +281,7 @@ export function OperatorForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Email
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -248,7 +291,10 @@ export function OperatorForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="form-input"
+                
+                className={`form-input ${
+                  invalidFields.includes('email') ? 'border-red-500' : ''
+                }`}
               />
             </div>
             {/* Password */}
@@ -258,6 +304,7 @@ export function OperatorForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Password
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="password"
@@ -267,7 +314,9 @@ export function OperatorForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('password') ? 'border-red-500' : ''
+                }`}
               />
             </div>
           </div>
@@ -288,6 +337,7 @@ export function OperatorForm() {
                   className="block text-sm font-medium text-gray-700"
                 >
                   First Name
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -297,7 +347,9 @@ export function OperatorForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, first_name: e.target.value })
                   }
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('first_name') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
               <div>
@@ -306,6 +358,7 @@ export function OperatorForm() {
                   className="block text-sm font-medium text-gray-700"
                 >
                   Last Name
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -315,7 +368,9 @@ export function OperatorForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, last_name: e.target.value })
                   }
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('last_name') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -328,7 +383,7 @@ export function OperatorForm() {
                   className="block text-sm font-medium text-gray-700"
                 >
                   Phone Number
-                </label>
+                  <span className="text-red-500">*</span></label>
                 <input
                   type="tel"
                   id="phone_number"
@@ -336,7 +391,9 @@ export function OperatorForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, phone_number: e.target.value })
                   }
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('phone_number') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
               <div>

@@ -59,12 +59,26 @@ export function StoreManagement() {
     if (!storeToDelete) return;
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('stores')
-        .delete()
-        .eq('id', storeToDelete);
-
-      if (error) throw error;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error('User session not found');
+  
+      const accessToken = session.access_token;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-store`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ id: storeToDelete }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        throw new Error(errorResponse.error || 'Failed to delete store');
+      }
 
       toast.success('Store deleted successfully!');
     } catch (error: any) {

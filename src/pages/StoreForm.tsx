@@ -12,6 +12,8 @@ import { AddressForm } from '../components/AddressForm';
 type TabType = 'account' | 'store' | 'owner' | 'address';
 
 export function StoreForm() {
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
+
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState<TabType>('account');
@@ -128,11 +130,45 @@ export function StoreForm() {
 
     return await response.json();
   };
+  const validateForm = () => {
+    const errors: string[] = [];
+  
+    if (!formData.name.trim()) {
+      errors.push('name');
+    }
+  
+    if (!formData.phone_number.trim()) {
+      errors.push('phone_number');
+    }
+  
+    if (!id) {
+      if (!formData.email.trim()) {
+        errors.push('email');
+      }
+      if (!formData.password.trim()) {
+        errors.push('password');
+      }
+    }
+  
+  
+    setInvalidFields(errors);
+  
+    if (errors.length > 0) {
+      setError('Please fill all required fields correctly.');
+      return false;
+    }
+  
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return; // Stop submit if validation fails
+    }
     setLoading(true);
     setError(null);
+    let newlyCreatedAddressId: string | null = null;
 
     try {
       const {
@@ -178,6 +214,7 @@ export function StoreForm() {
           if (addressError) throw addressError;
           if (newAddress) {
             addressId = newAddress.id;
+            newlyCreatedAddressId = newAddress.id;
           }
         }
       }
@@ -220,6 +257,17 @@ export function StoreForm() {
       navigate('/stores');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      if (newlyCreatedAddressId) {
+        try {
+          await supabase
+            .from('addresses')
+            .delete()
+            .eq('id', newlyCreatedAddressId);
+          console.info('Rolled back newly created address.');
+        } catch (rollbackError) {
+          console.error('Failed to rollback address:', rollbackError);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -236,7 +284,7 @@ export function StoreForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Email
-              </label>
+                <span className="text-red-500">*</span>  </label>
               <input
                 type="email"
                 id="email"
@@ -245,7 +293,9 @@ export function StoreForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('email') ? 'border-red-500' : ''
+                }`}
               />
             </div>
             <div>
@@ -254,7 +304,7 @@ export function StoreForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Password
-              </label>
+                <span className="text-red-500">*</span>  </label>
               <input
                 type="password"
                 id="password"
@@ -263,7 +313,9 @@ export function StoreForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('password') ? 'border-red-500' : ''
+                }`}
               />
             </div>
           </div>
@@ -282,7 +334,7 @@ export function StoreForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Store Name
-              </label>
+                <span className="text-red-500">*</span> </label>
               <input
                 type="text"
                 id="name"
@@ -291,7 +343,9 @@ export function StoreForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('name') ? 'border-red-500' : ''
+                }`}
               />
             </div>
 
@@ -326,7 +380,7 @@ export function StoreForm() {
                 className="block text-sm font-medium text-gray-700"
               >
                 Phone Number
-              </label>
+                <span className="text-red-500">*</span> </label>
               <input
                 type="tel"
                 id="phone_number"
@@ -334,7 +388,9 @@ export function StoreForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, phone_number: e.target.value })
                 }
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('phone_number') ? 'border-red-500' : ''
+                }`}
               />
             </div>
 

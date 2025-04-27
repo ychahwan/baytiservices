@@ -36,7 +36,6 @@ export function AuthForm({ type }: AuthFormProps) {
         if (error) throw error;
 
         const { session } = data;
-        debugger;
 
         if (session) {
           const accessToken = session.access_token;

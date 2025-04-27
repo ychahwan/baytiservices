@@ -60,12 +60,28 @@ export function FieldOperatorManagement() {
     if (!operatorToDelete) return;
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('field_operators')
-        .delete()
-        .eq('id', operatorToDelete);
 
-      if (error) throw error;
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error('User session not found');
+  
+      const accessToken = session.access_token;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-field-operator`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ id: operatorToDelete }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        throw new Error(errorResponse.error || 'Failed to delete operator');
+      }
 
       toast.success('Field operator deleted successfully!');
     } catch (error) {

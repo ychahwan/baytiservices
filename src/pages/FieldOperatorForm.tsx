@@ -4,10 +4,13 @@ import { supabase } from '../lib/supabase';
 import type { FieldOperatorFormData, AddressFormData } from '../lib/types';
 import { ArrowLeft, Save } from 'lucide-react';
 import { AddressForm } from '../components/AddressForm';
+import { toast } from 'react-hot-toast';
 
 type TabType = 'account' | 'profile' | 'address' | 'domain';
 
 export function FieldOperatorForm() {
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
+
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState<TabType>('account');
@@ -117,10 +120,52 @@ export function FieldOperatorForm() {
     return await response.json();
   };
 
+  const validateForm = () => {
+    const errors: string[] = [];
+  
+    if (!formData.first_name.trim()) {
+      errors.push('first_name');
+    }
+  
+    if (!formData.last_name.trim()) {
+      errors.push('last_name');
+    }
+    if (!formData.phone_number.trim()) {
+      errors.push('phone_number');
+    }
+  
+    if (!id) {
+      if (!formData.email.trim()) {
+        errors.push('email');
+      }
+      if (!formData.password.trim()) {
+        errors.push('password');
+      }
+    }
+  
+    if (formData.date_of_birth && isNaN(Date.parse(formData.date_of_birth))) {
+      errors.push('date_of_birth');
+    }
+  
+    setInvalidFields(errors);
+  
+    if (errors.length > 0) {
+      setError('Please fill all required fields correctly.');
+      return false;
+    }
+  
+    return true;
+  };
+  
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return; // Stop submit if validation fails
+    }
     setLoading(true);
     setError(null);
+    let newlyCreatedAddressId: string | null = null;
 
     try {
       const {
@@ -166,6 +211,8 @@ export function FieldOperatorForm() {
           if (addressError) throw addressError;
           if (newAddress) {
             addressId = newAddress.id;
+            newlyCreatedAddressId = newAddress.id;
+
           }
         }
       }
@@ -208,11 +255,27 @@ export function FieldOperatorForm() {
           userAccessToken
         );
       }
+      toast.success(id ? 'Field Operator updated successfully!' : 'Field Operator created successfully!');
 
       navigate('/field-operators');
     } catch (err) {
       console.error('Error submitting field operator:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (newlyCreatedAddressId) {
+        try {
+          await supabase
+            .from('addresses')
+            .delete()
+            .eq('id', newlyCreatedAddressId);
+          console.info('Rolled back newly created address.');
+        } catch (rollbackError) {
+          console.error('Failed to rollback address:', rollbackError);
+        }
+      }
+
+
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -226,27 +289,31 @@ export function FieldOperatorForm() {
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
-              </label>
+                <span className="text-red-500">*</span>  </label>
               <input
                 type="email"
                 id="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('email') ? 'border-red-500' : ''
+                }`}
               />
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
-              </label>
+                <span className="text-red-500">*</span>    </label>
               <input
                 type="password"
                 id="password"
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="form-input"
+                className={`form-input ${
+                  invalidFields.includes('password') ? 'border-red-500' : ''
+                }`}
               />
             </div>
           </div>
@@ -263,27 +330,31 @@ export function FieldOperatorForm() {
               <div>
                 <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
                   First Name
-                </label>
+                  <span className="text-red-500">*</span>   </label>
                 <input
                   type="text"
                   id="first_name"
                   required
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('first_name') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
               <div>
                 <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
                   Last Name
-                </label>
+                  <span className="text-red-500">*</span>    </label>
                 <input
                   type="text"
                   id="last_name"
                   required
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('last_name') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -292,13 +363,15 @@ export function FieldOperatorForm() {
               <div>
                 <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
                   Phone Number
-                </label>
+                  <span className="text-red-500">*</span>  </label>
                 <input
                   type="tel"
                   id="phone_number"
                   value={formData.phone_number}
                   onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                  className="form-input"
+                  className={`form-input ${
+                    invalidFields.includes('phone_number') ? 'border-red-500' : ''
+                  }`}
                 />
               </div>
               <div>
