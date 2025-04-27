@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users,
@@ -13,11 +13,25 @@ import {
   Search as SearchIcon,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { fetchUserRole } from '../lib/auth'; 
+import { DatabaseSync } from 'node:sqlite';
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUserRole = async () => { 
+      const role = await fetchUserRole(); 
+      setUserRole(role); 
+      console.log("---" + role)
+    };
+
+    loadUserRole(); 
+    
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -98,19 +112,21 @@ export function Sidebar() {
               {!isCollapsed && <span>Operators</span>}
             </button>
           </li>
-          <li>
-            <button
-              onClick={() => navigate('/field-operators')}
-              className={`flex items-center w-full py-2 px-3 rounded-md text-sm font-medium ${
-                isActive('/field-operators')
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              } focus:outline-none transition-colors duration-150`}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              {!isCollapsed && <span>Field Operators</span>}
-            </button>
-          </li>
+          {userRole === 'admin' && ( 
+            <li>
+              <button
+                onClick={() => navigate('/field-operators')}
+                className={`flex items-center w-full py-2 px-3 rounded-md text-sm font-medium ${
+                  isActive('/field-operators')
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                } focus:outline-none transition-colors duration-150`}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {!isCollapsed && <span>Field Operators</span>}
+              </button>
+            </li>
+          )}
           <li>
             <button
               onClick={() => navigate('/service-categories')}

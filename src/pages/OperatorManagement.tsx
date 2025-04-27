@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fetchUserRole } from '../lib/auth';
 import { Plus, Pencil, Trash2, Search, ArrowUpDown, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,16 @@ export function OperatorManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [operatorToDelete, setOperatorToDelete] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUserRole = async () => { 
+      const role = await fetchUserRole(); 
+      setUserRole(role); 
+    };
+
+    loadUserRole(); 
+  }, []);
 
   useEffect(() => {
     loadOperators();
@@ -152,14 +163,16 @@ export function OperatorManagement() {
               <h1 className="text-4xl font-bold text-gray-800">Operators</h1>
               <p className="text-gray-500">Manage your operator profiles easily.</p>
             </div>
+            {userRole === 'admin' && (
             <button
               onClick={() => navigate('/operators/new')}
               className="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
             >
               <Plus className="h-4 w-4 mr-2" /> Add Operator
             </button>
+            )}
           </div>
-
+          {userRole === 'admin' && (
           <div className="mt-6 relative">
             <div className="relative rounded-lg shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
@@ -174,6 +187,7 @@ export function OperatorManagement() {
               />
             </div>
           </div>
+          )}
 
           {loading ? (
             <div className="flex justify-center mt-10">
@@ -219,12 +233,14 @@ export function OperatorManagement() {
                               >
                                 <Pencil className="h-5 w-5" />
                               </button>
+                              {userRole === 'admin' && (
                               <button
                                 onClick={() => confirmDelete(operator.id)}
                                 className="text-red-600 hover:text-red-800"
                               >
                                 <Trash2 className="h-5 w-5" />
                               </button>
+                              )}
                             </td>
                           </motion.tr>
                         ))}
