@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { OperatorFormData, AddressFormData } from '../lib/types';
 import { ArrowLeft, Save } from 'lucide-react';
 import { AddressForm } from '../components/AddressForm';
+import { toast } from 'react-hot-toast';
 
 type TabType = 'account' | 'profile' | 'address';
 
@@ -119,7 +120,7 @@ export function OperatorForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+    let newlyCreatedAddressId: string | null = null;
     try {
       const {
         data: { user },
@@ -163,6 +164,7 @@ export function OperatorForm() {
           if (addressError) throw addressError;
           if (newAddress) {
             addressId = newAddress.id;
+            newlyCreatedAddressId = newAddress.id;
           }
         }
       }
@@ -199,10 +201,27 @@ export function OperatorForm() {
           userAccessToken
         );
       }
+      toast.success(id ? 'Operator updated successfully!' : 'Operator created successfully!');
 
       navigate('/operators');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error during store submission:', err);
+
+      if (newlyCreatedAddressId) {
+        try {
+          await supabase
+            .from('addresses')
+            .delete()
+            .eq('id', newlyCreatedAddressId);
+          console.info('Rolled back newly created address.');
+        } catch (rollbackError) {
+          console.error('Failed to rollback address:', rollbackError);
+        }
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

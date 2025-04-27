@@ -74,6 +74,19 @@ export function Sidebar() {
           </li>
           <li>
             <button
+              onClick={() => navigate('/service-providers')}
+              className={`flex items-center w-full py-2 px-3 rounded-md text-sm font-medium ${
+                isActive('/service-providers')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              } focus:outline-none transition-colors duration-150`}
+            >
+              <Briefcase className="h-4 w-4 mr-2" />
+              {!isCollapsed && <span>Service Providers</span>}
+            </button>
+          </li>
+          <li>
+            <button
               onClick={() => navigate('/operators')}
               className={`flex items-center w-full py-2 px-3 rounded-md text-sm font-medium ${
                 isActive('/operators')
@@ -111,19 +124,7 @@ export function Sidebar() {
               {!isCollapsed && <span>Services</span>}
             </button>
           </li>
-          <li>
-            <button
-              onClick={() => navigate('/service-providers')}
-              className={`flex items-center w-full py-2 px-3 rounded-md text-sm font-medium ${
-                isActive('/service-providers')
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              } focus:outline-none transition-colors duration-150`}
-            >
-              <Briefcase className="h-4 w-4 mr-2" />
-              {!isCollapsed && <span>Service Providers</span>}
-            </button>
-          </li>
+
           <li>
             <button
               onClick={() => navigate('/settings')}
